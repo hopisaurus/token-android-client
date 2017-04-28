@@ -18,6 +18,8 @@
 package com.tokenbrowser.manager;
 
 
+import android.content.SharedPreferences;
+
 import com.tokenbrowser.crypto.HDWallet;
 import com.tokenbrowser.crypto.signal.SignalPreferences;
 import com.tokenbrowser.manager.store.TokenMigration;
@@ -44,6 +46,7 @@ public class TokenManager {
     private AppsManager appsManager;
     private BalanceManager balanceManager;
     private HDWallet wallet;
+    private SharedPreferences walletPrefs;
     private SofaMessageManager sofaMessageManager;
     private TransactionManager transactionManager;
     private UserManager userManager;
@@ -66,6 +69,7 @@ public class TokenManager {
         if (this.wallet != null && areManagersInitialised) {
             return Single.just(this);
         }
+
         return new HDWallet()
                 .getOrCreateWallet()
                 .doOnSuccess(this::setWallet)

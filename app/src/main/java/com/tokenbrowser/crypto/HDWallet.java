@@ -19,9 +19,9 @@ package com.tokenbrowser.crypto;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.support.annotation.NonNull;
 
 import com.tokenbrowser.crypto.util.TypeConverter;
-import com.tokenbrowser.R;
 import com.tokenbrowser.exception.InvalidMasterSeedException;
 import com.tokenbrowser.util.FileNames;
 import com.tokenbrowser.util.LogUtil;
@@ -29,7 +29,6 @@ import com.tokenbrowser.view.BaseApplication;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.crypto.MnemonicCode;
 import org.bitcoinj.crypto.MnemonicException;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChain;
@@ -56,28 +55,16 @@ public class HDWallet {
     private ECKey receivingKey;
     private String masterSeed;
 
-    private void tryInit() {
-        if (this.prefs != null) return;
-        initPreferences();
-        initWordList();
-    }
-
-    private void initPreferences() {
+    public HDWallet() {
         this.prefs = BaseApplication.get().getSharedPreferences(FileNames.WALLET_PREFS, Context.MODE_PRIVATE);
     }
 
-    private void initWordList() {
-        try {
-            MnemonicCode.INSTANCE = new MnemonicCode(BaseApplication.get().getResources().openRawResource(R.raw.bip39_wordlist), null);
-        } catch (final IOException e) {
-            LogUtil.exception(getClass(), "Wordlist not loaded", e);
-            throw new RuntimeException(e);
-        }
+    public HDWallet(@NonNull final SharedPreferences preferences) {
+        this.prefs = preferences;
     }
 
     public Single<HDWallet> getExistingWallet() {
         return Single.fromCallable(() -> {
-            tryInit();
             this.masterSeed = readMasterSeedFromStorage();
             if (this.masterSeed == null) throw new InvalidMasterSeedException(new Throwable("Master seed is null"));
             final Wallet wallet = initFromMasterSeed(this.masterSeed);
@@ -89,7 +76,6 @@ public class HDWallet {
 
     public Single<HDWallet> getOrCreateWallet() {
         return Single.fromCallable(() -> {
-            tryInit();
             this.masterSeed = readMasterSeedFromStorage();
             final Wallet wallet = this.masterSeed == null
                     ? generateNewWallet()
@@ -122,7 +108,6 @@ public class HDWallet {
 
     public Single<HDWallet> createFromMasterSeed(final String masterSeed) {
         return Single.fromCallable(() -> {
-            tryInit();
             try {
                 final DeterministicSeed seed = getSeed(masterSeed);
                 seed.check();
@@ -154,7 +139,7 @@ public class HDWallet {
     }
 
     private void deriveIdentityKey(final Wallet wallet) throws IOException, UnreadableWalletException {
-        this.identityKey = deriveKeyFromWallet(wallet, 0, KeyChain.KeyPurpose.AUTHENTICATION);
+        this.identityKey = deriveKeyFromWallet(wallet, 0, KeyChain.KeyPurpose.RECEIVE_FUNDS);
     }
 
     private void deriveReceivingKey(final Wallet wallet) throws IOException, UnreadableWalletException {
