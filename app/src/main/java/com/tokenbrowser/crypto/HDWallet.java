@@ -53,7 +53,6 @@ public class HDWallet {
     private static final String MASTER_SEED = "ms";
     private SharedPreferences prefs;
     private ECKey identityKey;
-    private ECKey receivingKey;
     private String masterSeed;
 
     public HDWallet() {
@@ -138,7 +137,6 @@ public class HDWallet {
     private void deriveKeysFromWallet(final Wallet wallet) {
         try {
             deriveIdentityKey(wallet);
-            deriveReceivingKey(wallet);
         } catch (final UnreadableWalletException | IOException ex) {
             throw new RuntimeException("Error deriving keys: " + ex);
         }
@@ -146,10 +144,6 @@ public class HDWallet {
 
     private void deriveIdentityKey(final Wallet wallet) throws IOException, UnreadableWalletException {
         this.identityKey = deriveKeyFromWallet(wallet, 0, KeyChain.KeyPurpose.RECEIVE_FUNDS);
-    }
-
-    private void deriveReceivingKey(final Wallet wallet) throws IOException, UnreadableWalletException {
-        this.receivingKey = deriveKeyFromWallet(wallet, 0, KeyChain.KeyPurpose.RECEIVE_FUNDS);
     }
 
     private ECKey deriveKeyFromWallet(final Wallet wallet, final int iteration, final KeyChain.KeyPurpose keyPurpose) throws UnreadableWalletException, IOException {
@@ -172,7 +166,7 @@ public class HDWallet {
     public String signTransaction(final String data) {
         try {
             final byte[] transactionBytes = TypeConverter.StringHexToByteArray(data);
-            return sign(transactionBytes, this.receivingKey);
+            return sign(transactionBytes, this.identityKey);
         } catch (final Exception e) {
             LogUtil.print(getClass(), "Unable to sign transaction. " + e);
             return null;
@@ -223,8 +217,8 @@ public class HDWallet {
     }
 
     public String getPaymentAddress() {
-        if(this.receivingKey != null) {
-            return TypeConverter.toJsonHex(this.receivingKey.getAddress());
+        if(this.identityKey != null) {
+            return TypeConverter.toJsonHex(this.identityKey.getAddress());
         }
         return null;
     }
