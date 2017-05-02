@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 
+import com.tokenbrowser.crypto.hdshim.EthereumKeyChainGroup;
 import com.tokenbrowser.crypto.util.TypeConverter;
 import com.tokenbrowser.exception.InvalidMasterSeedException;
 import com.tokenbrowser.util.FileNames;
@@ -100,7 +101,7 @@ public class HDWallet {
         try {
             final DeterministicSeed seed = getSeed(masterSeed);
             seed.check();
-            return Wallet.fromSeed(getNetworkParameters(), seed);
+            return constructFromSeed(seed);
         } catch (final UnreadableWalletException | MnemonicException e) {
             throw new RuntimeException("Unable to create wallet. Seed is invalid");
         }
@@ -111,7 +112,7 @@ public class HDWallet {
             try {
                 final DeterministicSeed seed = getSeed(masterSeed);
                 seed.check();
-                final Wallet wallet = Wallet.fromSeed(getNetworkParameters(), seed);
+                final Wallet wallet = constructFromSeed(seed);
                 deriveKeysFromWallet(wallet);
                 saveMasterSeedToStorage(masterSeed);
                 return this;
@@ -119,6 +120,11 @@ public class HDWallet {
                 throw new InvalidMasterSeedException(e);
             }
         });
+    }
+
+    @NonNull
+    private Wallet constructFromSeed(final DeterministicSeed seed) {
+        return new Wallet(getNetworkParameters(),  new EthereumKeyChainGroup(getNetworkParameters(), seed));
     }
 
     private DeterministicSeed getSeed(final String masterSeed) throws UnreadableWalletException {
