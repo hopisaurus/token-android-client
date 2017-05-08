@@ -24,10 +24,12 @@ import android.view.View;
 
 import com.tokenbrowser.R;
 import com.tokenbrowser.crypto.util.TypeConverter;
+import com.tokenbrowser.util.CurrencyUtil;
 import com.tokenbrowser.util.EthUtil;
 import com.tokenbrowser.util.LocaleUtil;
 import com.tokenbrowser.util.LogUtil;
 import com.tokenbrowser.util.PaymentType;
+import com.tokenbrowser.util.SharedPrefsUtil;
 import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.activity.AmountActivity;
 import com.tokenbrowser.view.adapter.AmountInputAdapter;
@@ -43,22 +45,34 @@ public class AmountPresenter implements Presenter<AmountActivity> {
     public static final String INTENT_EXTRA__ETH_AMOUNT = "eth_amount";
 
     private AmountActivity activity;
+    private CompositeSubscription subscriptions;
+    private boolean firstTimeAttaching = true;
+
     private char separator;
     private char zero;
     private String encodedEthAmount;
     private @PaymentType.Type  int viewType;
-    private CompositeSubscription subscriptions;
 
     @Override
     public void onViewAttached(AmountActivity view) {
         this.activity = view;
 
-        if (this.subscriptions == null) {
-            this.subscriptions = new CompositeSubscription();
+        if (this.firstTimeAttaching) {
+            this.firstTimeAttaching = false;
+            initLongLivingObjects();
         }
 
+        initShortLivingObjejcts();
+    }
+
+    private void initLongLivingObjects() {
+        this.subscriptions = new CompositeSubscription();
+    }
+
+    private void initShortLivingObjejcts() {
         getIntentData();
         initView();
+        setCurrency();
         initSeparator();
     }
 
@@ -73,6 +87,12 @@ public class AmountPresenter implements Presenter<AmountActivity> {
 
         this.activity.getBinding().amountInputView.setOnAmountClickedListener(this.amountClickedListener);
         this.activity.getBinding().btnContinue.setOnClickListener(this.continueClickListener);
+    }
+
+    private void setCurrency() {
+        final String currency = SharedPrefsUtil.getCurrency();
+        final String currencySymbol = CurrencyUtil.getSymbolFromCurrencyCode(currency);
+        this.activity.getBinding().localCurrency.setText(currencySymbol);
     }
 
     private void initSeparator() {

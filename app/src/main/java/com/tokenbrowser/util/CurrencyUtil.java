@@ -33,4 +33,9 @@ public class CurrencyUtil {
         final Currency currency = Currency.getInstance(LocaleUtil.getLocale());
         return currency.getCurrencyCode();
     }
+
+    public static String getSymbolFromCurrencyCode(final String currencyCode) {
+        final Currency currency = Currency.getInstance(currencyCode);
+        return currency.getSymbol();
+    }
 }
