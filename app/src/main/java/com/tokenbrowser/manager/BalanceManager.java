@@ -31,9 +31,10 @@ import com.tokenbrowser.model.network.GcmRegistration;
 import com.tokenbrowser.model.network.MarketRates;
 import com.tokenbrowser.model.network.ServerTime;
 import com.tokenbrowser.model.sofa.Payment;
+import com.tokenbrowser.util.CurrencyUtil;
 import com.tokenbrowser.util.FileNames;
-import com.tokenbrowser.util.LocaleUtil;
 import com.tokenbrowser.util.LogUtil;
+import com.tokenbrowser.util.SharedPrefsUtil;
 import com.tokenbrowser.view.BaseApplication;
 
 import java.math.BigDecimal;
@@ -132,38 +133,37 @@ public class BalanceManager {
                 .subscribeOn(Schedulers.io());
     }
 
-    // Currently hard-coded to USD
     public Single<String> convertEthToLocalCurrencyString(final BigDecimal ethAmount) {
          return getRates().map((marketRates) -> {
-             final BigDecimal marketRate = marketRates.getRate("USD");
+             final String currency = SharedPrefsUtil.getCurrency();
+             final BigDecimal marketRate = marketRates.getRate(currency);
              final BigDecimal localAmount = marketRate.multiply(ethAmount);
 
-             final NumberFormat numberFormat = NumberFormat.getNumberInstance(LocaleUtil.getLocale());
+             final NumberFormat numberFormat = CurrencyUtil.getNumberFormat(currency);
              numberFormat.setGroupingUsed(true);
              numberFormat.setMaximumFractionDigits(2);
              numberFormat.setMinimumFractionDigits(2);
 
-             final String localAmountAsString = numberFormat.format(localAmount);
-             return "$" + localAmountAsString + " USD";
+             return numberFormat.format(localAmount);
          });
     }
 
-    // Currently hard-coded to USD
     public Single<BigDecimal> convertEthToLocalCurrency(final BigDecimal ethAmount) {
         return getRates().map((marketRates) -> {
-            final BigDecimal marketRate = marketRates.getRate("USD");
+            final String currency = SharedPrefsUtil.getCurrency();
+            final BigDecimal marketRate = marketRates.getRate(currency);
             return marketRate.multiply(ethAmount);
         });
     }
 
-    // Currently hard-coded to USD
     public Single<BigDecimal> convertLocalCurrencyToEth(final BigDecimal localAmount) {
         return getRates().map((marketRates) -> {
             if (localAmount.compareTo(BigDecimal.ZERO) == 0) {
                 return BigDecimal.ZERO;
             }
 
-            final BigDecimal marketRate = marketRates.getRate("USD");
+            final String currency = SharedPrefsUtil.getCurrency();
+            final BigDecimal marketRate = marketRates.getRate(currency);
             if (marketRate.compareTo(BigDecimal.ZERO) == 0) {
                 return BigDecimal.ZERO;
             }

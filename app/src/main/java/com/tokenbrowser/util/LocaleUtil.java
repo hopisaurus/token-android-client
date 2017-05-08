@@ -39,7 +39,7 @@ public class LocaleUtil {
         } catch (final NullPointerException ex) {
             LogUtil.exception(LocaleUtil.class, "NPE when getting locale", ex);
             // Default to something!
-            return Locale.ENGLISH;
+            return Locale.US;
         }
     }
 

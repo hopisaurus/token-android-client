@@ -28,6 +28,7 @@ public class SharedPrefsUtil {
     private static final String HAS_SIGNED_OUT = "hasSignedIn";
     private static final String HAS_BACKED_UP_PHRASE = "hasBackedUpPhrase";
     private static final String HAS_LOADED_APP_FIRST_TIME = "hasLoadedAppFirstTime";
+    private static final String LOCAL_CURRENCY_CODE = "localCurrencyCode";
 
     public static boolean hasOnboarded() {
         final SharedPreferences prefs = BaseApplication.get().getSharedPreferences(FileNames.USER_PREFS, Context.MODE_PRIVATE);
@@ -82,5 +83,27 @@ public class SharedPrefsUtil {
                 .putBoolean(HAS_BACKED_UP_PHRASE, false)
                 .putString(STORED_QR_CODE, null)
                 .apply();
+    }
+
+    public static void saveCurrency(final String currencyCode) {
+        final SharedPreferences prefs = BaseApplication.get().getSharedPreferences(FileNames.USER_PREFS, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(LOCAL_CURRENCY_CODE, currencyCode)
+                .apply();
+    }
+
+    public static String getCurrency() {
+        final SharedPreferences prefs = BaseApplication.get().getSharedPreferences(FileNames.USER_PREFS, Context.MODE_PRIVATE);
+        final String currencyCode = prefs.getString(LOCAL_CURRENCY_CODE, null);
+
+        return currencyCode == null
+                ? getCurrencyFromLocaleAndSave()
+                : currencyCode;
+    }
+
+    private static String getCurrencyFromLocaleAndSave() {
+        final String currency = CurrencyUtil.getCurrencyFromLocale();
+        saveCurrency(currency);
+        return currency;
     }
 }
