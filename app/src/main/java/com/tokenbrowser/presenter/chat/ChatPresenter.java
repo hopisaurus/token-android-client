@@ -29,10 +29,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
-import android.support.v7.app.ActionBar;
 import android.util.Pair;
 import android.view.KeyEvent;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -46,7 +44,6 @@ import com.tokenbrowser.R;
 import com.tokenbrowser.crypto.HDWallet;
 import com.tokenbrowser.model.local.ActivityResultHolder;
 import com.tokenbrowser.model.local.Conversation;
-import com.tokenbrowser.model.local.Review;
 import com.tokenbrowser.model.local.SofaMessage;
 import com.tokenbrowser.model.local.User;
 import com.tokenbrowser.model.sofa.Command;
@@ -73,7 +70,6 @@ import com.tokenbrowser.view.activity.ViewUserActivity;
 import com.tokenbrowser.view.adapter.MessageAdapter;
 import com.tokenbrowser.view.custom.SpeedyLinearLayoutManager;
 import com.tokenbrowser.view.fragment.DialogFragment.ChooserDialog;
-import com.tokenbrowser.view.fragment.DialogFragment.RateDialog;
 import com.tokenbrowser.view.notification.ChatNotificationManager;
 
 import java.io.File;
@@ -82,7 +78,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Response;
 import rx.Single;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -91,9 +86,7 @@ import rx.subjects.PublishSubject;
 import rx.subscriptions.CompositeSubscription;
 
 
-public final class ChatPresenter implements
-        Presenter<ChatActivity>,
-        RateDialog.OnRateDialogClickListener {
+public final class ChatPresenter implements Presenter<ChatActivity> {
 
     private static final int REQUEST_RESULT_CODE = 1;
     private static final int PAY_RESULT_CODE = 2;
@@ -614,15 +607,32 @@ public final class ChatPresenter implements
     private void initToolbar(final User remoteUser) {
         this.activity.getBinding().title.setText(remoteUser.getDisplayName());
         this.activity.getBinding().closeButton.setOnClickListener(this::handleBackButtonClicked);
-        this.activity.setSupportActionBar(this.activity.getBinding().toolbar);
-        final ActionBar actionBar = this.activity.getSupportActionBar();
-        if (actionBar != null) actionBar.setDisplayShowTitleEnabled(false);
+        this.activity.getBinding().avatar.setOnClickListener(__ -> viewRemoteUserProfile());
         ImageUtil.load(remoteUser.getAvatar(), this.activity.getBinding().avatar);
     }
 
     private void handleBackButtonClicked(final View v) {
         hideKeyboard();
         this.activity.onBackPressed();
+    }
+
+    private void viewRemoteUserProfile() {
+        final Subscription sub =
+                getRemoteUser()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        remoteUser -> viewProfile(remoteUser.getTokenId()),
+                        this::handleError
+                );
+
+        this.subscriptions.add(sub);
+    }
+
+    private void viewProfile(final String ownerAddress) {
+        final Intent intent = new Intent(this.activity, ViewUserActivity.class)
+                .putExtra(ViewUserActivity.EXTRA__USER_ADDRESS, ownerAddress);
+        this.activity.startActivity(intent);
     }
 
     private void initChatMessageStore(final User remoteUser) {
@@ -883,106 +893,8 @@ public final class ChatPresenter implements
         this.outgoingMessageQueue.send(sofaMessage);
     }
 
-    public void handleActionMenuClicked(final MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.rate: {
-                rateRemoteUser();
-                break;
-            }
-            case R.id.view_profile: {
-                viewRemoteUserProfile();
-                break;
-            }
-            default: {
-                LogUtil.d(getClass(), "Not valid menu item");
-            }
-        }
-    }
-
-    private void rateRemoteUser() {
-        final Subscription sub =
-                getRemoteUser()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        this::rateUser,
-                        this::handleError
-                );
-
-        this.subscriptions.add(sub);
-    }
-
-    private void rateUser(final User user) {
-        final RateDialog dialog = RateDialog
-                .newInstance(user.getUsername());
-        dialog.setOnRateDialogClickListener(this);
-        dialog.show(this.activity.getSupportFragmentManager(), RateDialog.TAG);
-    }
-
-    private void viewRemoteUserProfile() {
-        final Subscription sub =
-                getRemoteUser()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        remoteUser -> viewProfile(remoteUser.getTokenId()),
-                        this::handleError
-                );
-
-        this.subscriptions.add(sub);
-    }
-
-    private void viewProfile(final String ownerAddress) {
-        final Intent intent = new Intent(this.activity, ViewUserActivity.class)
-                .putExtra(ViewUserActivity.EXTRA__USER_ADDRESS, ownerAddress);
-        this.activity.startActivity(intent);
-    }
-
     private void handleError(final Throwable throwable) {
         LogUtil.exception(getClass(), throwable);
-    }
-
-    @Override
-    public void onRateClicked(final int rating, final String reviewText) {
-        final Review review = new Review()
-                .setRating(rating)
-                .setReview(reviewText)
-                .setReviewee(this.remoteUser.getTokenId());
-
-        final Subscription sub =
-                submitReview(review)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        __ -> handleSubmitSuccess(),
-                        this::handleSubmitError
-                );
-
-        this.subscriptions.add(sub);
-    }
-
-    private Single<Response<Void>> submitReview(final Review review) {
-        return BaseApplication
-                .get()
-                .getTokenManager()
-                .getUserManager()
-                .getTimestamp()
-                .flatMap(serverTime ->
-                        BaseApplication.get()
-                        .getTokenManager()
-                        .getReputationManager()
-                        .submitReview(review, serverTime.get()));
-    }
-
-    private void handleSubmitSuccess() {
-        Toast.makeText(
-                this.activity,
-                "Review submitted",
-                Toast.LENGTH_SHORT
-        ).show();
-    }
-
-    private void handleSubmitError(final Throwable throwable) {
-        LogUtil.exception(getClass(), "Error when sending review", throwable);
     }
 
     @Override
