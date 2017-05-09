@@ -34,6 +34,7 @@ import com.tokenbrowser.util.SharedPrefsUtil;
 import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.activity.AboutActivity;
 import com.tokenbrowser.view.activity.BackupPhraseInfoActivity;
+import com.tokenbrowser.view.activity.CurrencyActivity;
 import com.tokenbrowser.view.activity.DepositActivity;
 import com.tokenbrowser.view.activity.QrCodeActivity;
 import com.tokenbrowser.view.activity.SignOutActivity;
@@ -147,6 +148,10 @@ public final class SettingsPresenter implements
 
     private void handleItemClickListener(final int option) {
         switch (option) {
+            case SettingsAdapter.LOCAL_CURRENCY: {
+                goToCurrencyActivity();
+                break;
+            }
             case SettingsAdapter.ABOUT: {
                 final Intent intent = new Intent(this.fragment.getContext(), AboutActivity.class);
                 this.fragment.getContext().startActivity(intent);
@@ -165,6 +170,11 @@ public final class SettingsPresenter implements
                 Toast.makeText(this.fragment.getContext(), "This option is not supported", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private void goToCurrencyActivity() {
+        final Intent intent = new Intent(this.fragment.getContext(), CurrencyActivity.class);
+        this.fragment.startActivity(intent);
     }
 
     private void dialogHandler() {
