@@ -25,6 +25,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.tokenbrowser.R;
+import com.tokenbrowser.util.SharedPrefsUtil;
 import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.adapter.listeners.OnItemClickListener;
 import com.tokenbrowser.view.adapter.viewholder.ClickableViewHolder;
@@ -55,7 +56,14 @@ public class SettingsAdapter extends RecyclerView.Adapter<SettingsAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        final String label = this.settings[position];
+        String label = this.settings[position];
+
+        //Add the currency in parentheses
+        final String localCurrency = BaseApplication.get().getString(R.string.local_currency);
+        if (label.equals(localCurrency)) {
+            label = String.format("%s (%s)", label, SharedPrefsUtil.getCurrency());
+        }
+
         holder.label.setText(label);
         holder.bind(position, listener);
     }
