@@ -205,4 +205,5 @@
     <string name="report_spam">Spam</string>
     <string name="report_inappropriate">Inappropriate behavior</string>
     <string name="report_error">Error during sending report</string>
+    <string name="review_submitted">Review submitted</string>
 </resources>

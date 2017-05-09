@@ -38,6 +38,7 @@ import com.tokenbrowser.util.ImageUtil;
 import com.tokenbrowser.util.LogUtil;
 import com.tokenbrowser.util.OnSingleClickListener;
 import com.tokenbrowser.util.PaymentType;
+import com.tokenbrowser.util.RatingHandler;
 import com.tokenbrowser.util.SoundManager;
 import com.tokenbrowser.util.UserBlockingHandler;
 import com.tokenbrowser.util.UserReportingHandler;
@@ -61,10 +62,11 @@ public final class ViewUserPresenter implements
     private CompositeSubscription subscriptions;
     private boolean firstTimeAttached = true;
 
-    private User scannedUser;
+    private User user;
     private String userAddress;
     private UserBlockingHandler userBlockingHandler;
     private UserReportingHandler userReportingHandler;
+    private RatingHandler ratingHandler;
 
     @Override
     public void onViewAttached(final ViewUserActivity activity) {
@@ -104,6 +106,7 @@ public final class ViewUserPresenter implements
     }
 
     private void initHandlers() {
+        this.ratingHandler = new RatingHandler(this.activity);
         this.userReportingHandler = new UserReportingHandler(this.activity)
                 .setUserAddress(this.userAddress);
         this.userBlockingHandler = new UserBlockingHandler(this.activity)
@@ -174,17 +177,17 @@ public final class ViewUserPresenter implements
         }
     }
 
-    private void handleUserLoaded(final User scannedUser) {
-        this.scannedUser = scannedUser;
+    private void handleUserLoaded(final User user) {
+        this.user = user;
         final ActivityUserProfileBinding binding = this.activity.getBinding();
-        binding.title.setText(scannedUser.getDisplayName());
-        binding.name.setText(scannedUser.getDisplayName());
-        binding.username.setText(scannedUser.getUsername());
-        binding.about.setText(scannedUser.getAbout());
-        binding.location.setText(scannedUser.getLocation());
-        binding.about.setVisibility(scannedUser.getAbout() == null ? View.GONE : View.VISIBLE);
-        binding.location.setVisibility(scannedUser.getLocation() == null ? View.GONE : View.VISIBLE);
-        ImageUtil.load(scannedUser.getAvatar(), binding.avatar);
+        binding.title.setText(user.getDisplayName());
+        binding.name.setText(user.getDisplayName());
+        binding.username.setText(user.getUsername());
+        binding.about.setText(user.getAbout());
+        binding.location.setText(user.getLocation());
+        binding.about.setVisibility(user.getAbout() == null ? View.GONE : View.VISIBLE);
+        binding.location.setVisibility(user.getLocation() == null ? View.GONE : View.VISIBLE);
+        ImageUtil.load(user.getAvatar(), binding.avatar);
         addClickListeners();
         updateAddContactState();
         if (shouldPlayScanSounds()) SoundManager.getInstance().playSound(SoundManager.SCAN_ERROR);
@@ -205,7 +208,7 @@ public final class ViewUserPresenter implements
 
     private void updateAddContactState() {
         final Subscription sub =
-                isAContact(this.scannedUser)
+                isAContact(this.user)
                 .subscribe(
                         this::updateAddContactState,
                         this::handleContactError
@@ -233,7 +236,7 @@ public final class ViewUserPresenter implements
         @Override
         public void onSingleClick(final View v) {
             final Subscription sub =
-                    isAContact(scannedUser)
+                    isAContact(user)
                     .subscribe(
                             this::handleAddContact,
                             throwable -> handleContactError(throwable)
@@ -244,9 +247,9 @@ public final class ViewUserPresenter implements
 
         private void handleAddContact(final boolean isAContact) {
             if (isAContact) {
-                deleteContact(scannedUser);
+                deleteContact(user);
             } else {
-                saveContact(scannedUser);
+                saveContact(user);
                 SoundManager.getInstance().playSound(SoundManager.ADD_CONTACT);
             }
             updateAddContactState();
@@ -284,7 +287,7 @@ public final class ViewUserPresenter implements
 
     private void handleMessageContactButton(final View view) {
         final Intent intent = new Intent(this.activity, ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA__REMOTE_USER_ADDRESS, this.scannedUser.getTokenId());
+        intent.putExtra(ChatActivity.EXTRA__REMOTE_USER_ADDRESS, this.user.getTokenId());
         this.activity.startActivity(intent);
         this.activity.finish();
     }
@@ -319,22 +322,22 @@ public final class ViewUserPresenter implements
 
     public void handleActionMenuClicked(final MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.rate: {
+                this.ratingHandler.rateUser(this.user);
+                break;
+            }
             case R.id.block: {
-                handleBlockClicked();
+                this.userBlockingHandler.blockOrUnblockUser();
                 break;
             }
             case R.id.report: {
-                reportUser();
+                this.userReportingHandler.showReportDialog();
                 break;
             }
             default: {
                 LogUtil.d(getClass(), "Not valid menu item");
             }
         }
-    }
-
-    private void handleBlockClicked() {
-        this.userBlockingHandler.blockOrUnblockUser();
     }
 
     @Override
@@ -388,14 +391,11 @@ public final class ViewUserPresenter implements
         menuItem.setTitle(this.activity.getString(R.string.unblock));
     }
 
-    private void reportUser() {
-        this.userReportingHandler.showReportDialog();
-    }
-
     @Override
     public void onViewDetached() {
         this.userBlockingHandler.clear();
         this.subscriptions.clear();
+        this.ratingHandler.clear();
         this.activity = null;
     }
 
@@ -403,6 +403,7 @@ public final class ViewUserPresenter implements
     public void onDestroyed() {
         this.userBlockingHandler = null;
         this.subscriptions = null;
+        this.ratingHandler = null;
         this.activity = null;
     }
 }
