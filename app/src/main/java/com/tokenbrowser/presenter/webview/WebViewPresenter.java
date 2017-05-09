@@ -24,11 +24,18 @@ import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
 import com.tokenbrowser.R;
+import com.tokenbrowser.crypto.HDWallet;
+import com.tokenbrowser.model.local.UnsignedW3Transaction;
+import com.tokenbrowser.model.sofa.SofaAdapters;
 import com.tokenbrowser.presenter.Presenter;
 import com.tokenbrowser.util.LogUtil;
 import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.activity.WebViewActivity;
 import com.tokenbrowser.view.custom.listener.OnLoadListener;
+import com.tokenbrowser.view.fragment.DialogFragment.PaymentConfirmationDialog;
+import com.tokenbrowser.view.fragment.DialogFragment.WebPaymentConfirmationListener;
+
+import java.io.IOException;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -153,6 +160,15 @@ public class WebViewPresenter implements Presenter<WebViewActivity> {
         this.isLoaded = false;
     }
 
+    private HDWallet getWallet() {
+        return BaseApplication
+                .get()
+                .getTokenManager()
+                .getWallet()
+                .toBlocking()
+                .value();
+    }
+
     private class SOFAHost {
 
         @JavascriptInterface
@@ -162,31 +178,51 @@ public class WebViewPresenter implements Presenter<WebViewActivity> {
 
         @JavascriptInterface
         public String getAccounts() {
-            return "[\"" +
-                    BaseApplication
-                    .get()
-                    .getTokenManager()
-                    .getWallet()
-                    .toBlocking()
-                    .value()
-                    .getPaymentAddress()
-                    + "\"]";
+            return "[\"" + getWallet().getPaymentAddress() + "\"]";
         }
 
         @JavascriptInterface
-        public boolean approveTransaction(final String details) {
-            return true;
+        public boolean approveTransaction(final String unsignedTransaction) {
+            final UnsignedW3Transaction transaction;
+            try {
+                transaction = SofaAdapters.get().unsignedW3TransactionFrom(unsignedTransaction);
+            } catch (final IOException e) {
+                LogUtil.exception(getClass(), "Unable to parse unsigned transaction. ", e);
+                return false;
+            }
+
+            return transaction.getFrom().equals(getWallet().getPaymentAddress());
         }
 
         @JavascriptInterface
-        public String signTransaction(final String unsignedTransaction) {
-            return BaseApplication
-                    .get()
-                    .getTokenManager()
-                    .getWallet()
-                    .toBlocking()
-                    .value()
-                    .signTransaction(unsignedTransaction);
+        public void signTransaction(final String unsignedTransaction) {
+
+            final UnsignedW3Transaction transaction;
+            try {
+                transaction = SofaAdapters.get().unsignedW3TransactionFrom(unsignedTransaction);
+            } catch (final IOException e) {
+                LogUtil.exception(getClass(), "Unable to parse unsigned transaction. ", e);
+                return;
+            }
+            if (activity == null) return;
+            final PaymentConfirmationDialog dialog =
+                    PaymentConfirmationDialog
+                            .newInstanceWebPayment(
+                                    unsignedTransaction,
+                                    transaction.getTo(),
+                                    transaction.getValue(),
+                                    null
+                            );
+            dialog.show(activity.getSupportFragmentManager(), PaymentConfirmationDialog.TAG);
+            dialog.setOnPaymentConfirmationListener(this.confirmationListener);
         }
+
+        private final WebPaymentConfirmationListener confirmationListener = new WebPaymentConfirmationListener() {
+            @Override
+            public void onWebPaymentApproved(final String unsignedTransaction) {
+                final String signedTransaction = getWallet().signTransaction(unsignedTransaction);
+                // To Do -- pass the signed transaction back to webview
+            }
+        };
     }
 }

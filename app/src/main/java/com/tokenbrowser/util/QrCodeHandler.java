@@ -258,6 +258,11 @@ public class QrCodeHandler implements PaymentConfirmationDialog.OnPaymentConfirm
         }
     }
 
+    @Override
+    public void onWebPaymentApproved(final String unsignedTransaction) {
+        LogUtil.e(getClass(), "Unexpected onWebPaymentApproved call.");
+    }
+
     private void goToChatActivityWithPayment(final String tokenId, final Payment payment) throws InvalidQrCodePayment {
         final Intent intent = new Intent(this.activity, ChatActivity.class)
                 .putExtra(ChatActivity.EXTRA__REMOTE_USER_ADDRESS, tokenId)

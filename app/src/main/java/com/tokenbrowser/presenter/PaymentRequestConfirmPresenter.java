@@ -48,6 +48,7 @@ public class PaymentRequestConfirmPresenter implements Presenter<PaymentConfirma
     private String encodedEthAmount;
     private String tokenId;
     private String paymentAddress;
+    private String unsignedTransaction;
     private String memo;
     private @PaymentType.Type int paymentType;
 
@@ -88,14 +89,23 @@ public class PaymentRequestConfirmPresenter implements Presenter<PaymentConfirma
         final Payment payment = new Payment()
                 .setValue(this.encodedEthAmount);
 
+        if (this.unsignedTransaction != null) {
+            this.view.getPaymentConfirmationListener()
+                     .onWebPaymentApproved(this.unsignedTransaction);
+            this.view.dismiss();
+            return;
+        }
         if (this.paymentAddress != null) {
             payment.setToAddress(this.paymentAddress);
             this.view.getPaymentConfirmationListener()
                     .onExternalPaymentApproved(payment);
-        } else {
-            this.view.getPaymentConfirmationListener()
-                    .onTokenPaymentApproved(this.tokenId, payment);
+            this.view.dismiss();
+            return;
         }
+
+
+        this.view.getPaymentConfirmationListener()
+                 .onTokenPaymentApproved(this.tokenId, payment);
         this.view.dismiss();
     }
 
@@ -107,6 +117,7 @@ public class PaymentRequestConfirmPresenter implements Presenter<PaymentConfirma
     @SuppressWarnings("WrongConstant")
     private void processBundleData() {
         this.tokenId = this.view.getArguments().getString(PaymentConfirmationDialog.TOKEN_ID);
+        this.unsignedTransaction = this.view.getArguments().getString(PaymentConfirmationDialog.UNSIGNED_TRANSACTION, null);
         this.paymentAddress = this.view.getArguments().getString(PaymentConfirmationDialog.PAYMENT_ADDRESS);
         this.encodedEthAmount = this.view.getArguments().getString(PaymentConfirmationDialog.ETH_AMOUNT);
         this.memo = this.view.getArguments().getString(PaymentConfirmationDialog.MEMO);

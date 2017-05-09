@@ -39,6 +39,7 @@ public class PaymentConfirmationDialog extends BasePresenterDialogFragment<Payme
     public static final String TAG = "PaymentConfirmationDialog";
     public static final String TOKEN_ID = "token_id";
     public static final String PAYMENT_ADDRESS = "payment_address";
+    public static final String UNSIGNED_TRANSACTION = "unsigned_transaction";
     public static final String ETH_AMOUNT = "eth_amount";
     public static final String MEMO = "memo";
     public static final String PAYMENT_TYPE = "payment_type";
@@ -46,18 +47,28 @@ public class PaymentConfirmationDialog extends BasePresenterDialogFragment<Payme
     private FragmentPaymentRequestConfirmationBinding binding;
     private OnPaymentConfirmationListener listener;
 
-    public static PaymentConfirmationDialog newInstanceTokenPayment(final String tokenId,
-                                                                    final String value,
-                                                                    final String memo) {
+    public static PaymentConfirmationDialog newInstanceTokenPayment(@NonNull final String tokenId,
+                                                                    @NonNull final String value,
+                                                                    @Nullable final String memo) {
         final Bundle bundle = new Bundle();
         bundle.putString(TOKEN_ID, tokenId);
         return newInstance(bundle, value, memo);
     }
 
-    public static PaymentConfirmationDialog newInstanceExternalPayment(final String paymentAddress,
-                                                                       final String value,
-                                                                       final String memo) {
+    public static PaymentConfirmationDialog newInstanceExternalPayment(@NonNull final String paymentAddress,
+                                                                       @NonNull final String value,
+                                                                       @Nullable final String memo) {
         final Bundle bundle = new Bundle();
+        bundle.putString(PAYMENT_ADDRESS, paymentAddress);
+        return newInstance(bundle, value, memo);
+    }
+
+    public static PaymentConfirmationDialog newInstanceWebPayment(@NonNull final String unsignedTransaction,
+                                                                  @NonNull final String paymentAddress,
+                                                                  @NonNull final String value,
+                                                                  @Nullable final String memo) {
+        final Bundle bundle = new Bundle();
+        bundle.putString(UNSIGNED_TRANSACTION, unsignedTransaction);
         bundle.putString(PAYMENT_ADDRESS, paymentAddress);
         return newInstance(bundle, value, memo);
     }
@@ -77,6 +88,7 @@ public class PaymentConfirmationDialog extends BasePresenterDialogFragment<Payme
         void onPaymentRejected();
         void onTokenPaymentApproved(final String tokenId, final Payment payment);
         void onExternalPaymentApproved(final Payment payment);
+        void onWebPaymentApproved(final String unsignedTransaction);
     }
 
     public void setOnPaymentConfirmationListener(final OnPaymentConfirmationListener listener) {
