@@ -43,8 +43,16 @@ public class MarketRates {
         return rate;
     }
 
+    public DataPoints getData() {
+        return this.data;
+    }
+
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-    private static class DataPoints{
+    public static class DataPoints {
         private Map<String, BigDecimal> rates;
+
+        public Map<String, BigDecimal> getRates() {
+            return this.rates;
+        }
     }
 }

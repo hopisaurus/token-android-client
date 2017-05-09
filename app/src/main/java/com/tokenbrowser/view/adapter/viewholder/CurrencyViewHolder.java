@@ -17,28 +17,49 @@
 
 package com.tokenbrowser.view.adapter.viewholder;
 
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
 
-import com.tokenbrowser.model.network.Currency;
+import com.tokenbrowser.R;
+import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.adapter.listeners.OnItemClickListener;
 
 public class CurrencyViewHolder extends RecyclerView.ViewHolder {
-    private TextView currency;
+    private TextView textView;
+    private float headerTextSize;
+    private float itemTextSize;
+    private int headerTextColor;
+    private int itemTextColor;
 
     public CurrencyViewHolder(View itemView) {
         super(itemView);
-        this.currency = (TextView) itemView;
+        this.textView = (TextView) itemView;
+        this.itemTextSize = BaseApplication.get().getResources().getDimension(R.dimen.list_item_text_size);
+        this.headerTextSize = BaseApplication.get().getResources().getDimension(R.dimen.list_header_text_size);
+        this.headerTextColor = ContextCompat.getColor(BaseApplication.get(), R.color.textColorSecondary);
+        this.itemTextColor = ContextCompat.getColor(BaseApplication.get(), R.color.textColorPrimary);
     }
 
-    public CurrencyViewHolder setCurrency(final Currency currency) {
-        this.currency.setText(String.format("%s (%s)", currency.getName(), currency.getId()));
+    public CurrencyViewHolder setCurrency(final String value) {
+        this.textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, this.itemTextSize);
+        this.textView.setTextColor(this.itemTextColor);
+        this.textView.setText(value);
+        return this;
+    }
+
+    public CurrencyViewHolder setHeaderText(final String value) {
+        this.textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, this.headerTextSize);
+        this.textView.setTextColor(this.headerTextColor);
+        this.textView.setText(value);
+        this.textView.setBackground(null);
         return this;
     }
 
     public CurrencyViewHolder setOnClickListener(final OnItemClickListener listener,
-                                                 final Currency currency) {
+                                                 final String currency) {
         this.itemView.setOnClickListener(__ -> listener.onItemClick(currency));
         return this;
     }

@@ -26,7 +26,6 @@ import com.tokenbrowser.manager.network.CurrencyService;
 import com.tokenbrowser.manager.network.EthereumService;
 import com.tokenbrowser.model.network.Addresses;
 import com.tokenbrowser.model.network.Balance;
-import com.tokenbrowser.model.network.Currencies;
 import com.tokenbrowser.model.network.GcmRegistration;
 import com.tokenbrowser.model.network.MarketRates;
 import com.tokenbrowser.model.network.ServerTime;
@@ -113,7 +112,7 @@ public class BalanceManager {
         LogUtil.exception(getClass(), "Error while fetching balance", throwable);
     }
 
-    private Single<MarketRates> getRates() {
+    public Single<MarketRates> getRates() {
         return fetchLatestRates()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
@@ -124,13 +123,6 @@ public class BalanceManager {
                 .getApi()
                 .getRates("ETH")
                 .onErrorReturn(__ -> new MarketRates());
-    }
-
-    public Single<Currencies> getCurrencies() {
-        return CurrencyService
-                .getApi()
-                .getCurrencies()
-                .subscribeOn(Schedulers.io());
     }
 
     public Single<String> convertEthToLocalCurrencyString(final BigDecimal ethAmount) {

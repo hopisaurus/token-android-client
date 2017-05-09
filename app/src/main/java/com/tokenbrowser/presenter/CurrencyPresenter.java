@@ -20,8 +20,6 @@ package com.tokenbrowser.presenter;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
-import com.tokenbrowser.model.network.Currencies;
-import com.tokenbrowser.model.network.Currency;
 import com.tokenbrowser.util.LogUtil;
 import com.tokenbrowser.util.SharedPrefsUtil;
 import com.tokenbrowser.view.BaseApplication;
@@ -29,9 +27,9 @@ import com.tokenbrowser.view.activity.CurrencyActivity;
 import com.tokenbrowser.view.adapter.CurrencyAdapter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.subscriptions.CompositeSubscription;
 
 public class CurrencyPresenter implements Presenter<CurrencyActivity> {
@@ -39,6 +37,8 @@ public class CurrencyPresenter implements Presenter<CurrencyActivity> {
     private CurrencyActivity activity;
     private CompositeSubscription subscriptions;
     private boolean firstTimeAttaching = true;
+    private List<String> currencies;
+    private int scrollPosition = -1;
 
     @Override
     public void onViewAttached(CurrencyActivity view) {
@@ -59,46 +59,54 @@ public class CurrencyPresenter implements Presenter<CurrencyActivity> {
     private void initShortLivingObjects() {
         initRecyclerView();
         initClickListeners();
-        getCurrencies();
+        getRates();
     }
 
     private void initRecyclerView() {
         final RecyclerView recyclerView = this.activity.getBinding().recyclerView;
-        recyclerView.setLayoutManager(new LinearLayoutManager(this.activity));
-        final CurrencyAdapter adapter = new CurrencyAdapter(new ArrayList<>())
+        final LinearLayoutManager llm = new LinearLayoutManager(this.activity);
+        recyclerView.setLayoutManager(llm);
+        final List<String> currencies = this.currencies != null
+                ? this.currencies
+                : new ArrayList<>();
+        final CurrencyAdapter adapter = new CurrencyAdapter(currencies)
                 .setOnClickListener(this::handleCurrencyClicked);
         recyclerView.setAdapter(adapter);
+
+        if (this.currencies == null || scrollPosition == -1) return;
+        llm.scrollToPosition(this.scrollPosition);
     }
 
     private void initClickListeners() {
         this.activity.getBinding().closeButton.setOnClickListener(__ -> this.activity.finish());
     }
 
-    private void handleCurrencyClicked(final Currency currency) {
-        SharedPrefsUtil.saveCurrency(currency.getId());
+    private void handleCurrencyClicked(final String currency) {
+        SharedPrefsUtil.saveCurrency(currency);
         this.activity.finish();
     }
 
-    private void getCurrencies() {
+    private void getRates() {
         final Subscription sub =
                 BaseApplication
                 .get()
                 .getTokenManager()
                 .getBalanceManager()
-                .getCurrencies()
-                .observeOn(AndroidSchedulers.mainThread())
+                .getRates()
+                .map(marketRates -> new ArrayList<>(marketRates.getData().getRates().keySet()))
+                .doOnSuccess(currencies -> this.currencies = currencies)
                 .subscribe(
-                        this::handleCurrencies,
+                        __ -> handleRates(),
                         this::handleError
                 );
 
         this.subscriptions.add(sub);
     }
 
-    private void handleCurrencies(final Currencies currencies) {
+    private void handleRates() {
         if (this.activity == null) return;
         final CurrencyAdapter adapter = (CurrencyAdapter) this.activity.getBinding().recyclerView.getAdapter();
-        adapter.addItems(currencies.getData());
+        adapter.addItems(this.currencies);
     }
 
     private void handleError(final Throwable throwable) {
@@ -107,8 +115,15 @@ public class CurrencyPresenter implements Presenter<CurrencyActivity> {
 
     @Override
     public void onViewDetached() {
+        cacheScrollPosition();
         this.subscriptions.clear();
         this.activity = null;
+    }
+
+    private void cacheScrollPosition() {
+        if (this.activity == null) return;
+        final LinearLayoutManager llm = (LinearLayoutManager) this.activity.getBinding().recyclerView.getLayoutManager();
+        this.scrollPosition = llm.findFirstVisibleItemPosition();
     }
 
     @Override

@@ -17,7 +17,6 @@
 
 package com.tokenbrowser.manager.network;
 
-import com.tokenbrowser.model.network.Currencies;
 import com.tokenbrowser.model.network.MarketRates;
 
 import retrofit2.http.GET;
@@ -28,7 +27,4 @@ public interface CurrencyInterface {
 
     @GET("/v2/exchange-rates")
     Single<MarketRates> getRates(@Query("currency") String currency);
-
-    @GET("/v2/currencies")
-    Single<Currencies> getCurrencies();
 }

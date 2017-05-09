@@ -23,88 +23,59 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.tokenbrowser.R;
-import com.tokenbrowser.model.network.Currency;
 import com.tokenbrowser.view.BaseApplication;
 import com.tokenbrowser.view.adapter.listeners.OnItemClickListener;
-import com.tokenbrowser.view.adapter.viewholder.CurrencyHeaderViewHolder;
 import com.tokenbrowser.view.adapter.viewholder.CurrencyViewHolder;
 
 import java.util.List;
 
 public class CurrencyAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int ITEM = 1;
-    private static final int HEADER = 2;
+    private List<String> currencies;
+    private OnItemClickListener<String> listener;
 
-    public List<Currency> currencies;
-    private OnItemClickListener<Currency> listener;
-
-    public CurrencyAdapter(final List<Currency> currencies) {
+    public CurrencyAdapter(final List<String> currencies) {
         this.currencies = currencies;
     }
 
-    public CurrencyAdapter setOnClickListener(final OnItemClickListener<Currency> listener) {
+    public CurrencyAdapter setOnClickListener(final OnItemClickListener<String> listener) {
         this.listener = listener;
         return this;
     }
 
-    public void addItems(final List<Currency> currencies) {
+    public void addItems(final List<String> currencies) {
         this.currencies.clear();
+        this.currencies.add(""); //Add header
         this.currencies.addAll(currencies);
         notifyDataSetChanged();
     }
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        switch (viewType) {
-            case HEADER: {
-                final View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item__currency_header, parent, false);
-                return new CurrencyHeaderViewHolder(v);
-            }
-            case ITEM:
-            default: {
-                final View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item__currency, parent, false);
-                return new CurrencyViewHolder(v);
-            }
-        }
+        final View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item__currency, parent, false);
+        return new CurrencyViewHolder(v);
     }
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        switch (getItemViewType(position)) {
-            case HEADER: {
-                renderHeaderView(holder);
-                break;
-            }
-            case ITEM:
-            default: {
-                final Currency currency = this.currencies.get(position - 1); // - 1 because of the header
-                renderItemView(currency, holder);
-                break;
-            }
-        }
+        final String currency = this.currencies.get(position);
+        renderItemView(currency, holder);
     }
 
-    private void renderHeaderView(final RecyclerView.ViewHolder holder) {
-        final CurrencyHeaderViewHolder vh = (CurrencyHeaderViewHolder) holder;
-        final String headerText = BaseApplication.get().getString(R.string.currencies);
-        vh.setText(headerText);
-    }
-
-    private void renderItemView(final Currency currency, final RecyclerView.ViewHolder holder) {
+    private void renderItemView(final String currency, final RecyclerView.ViewHolder holder) {
         final CurrencyViewHolder vh = (CurrencyViewHolder) holder;
-        vh
-                .setCurrency(currency)
-                .setOnClickListener(this.listener, currency);
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-        return position == 0 ? HEADER : ITEM;
+        if (currency.length() == 0) {
+            final String headerString = BaseApplication.get().getString(R.string.currencies);
+            vh.setHeaderText(headerString);
+        } else {
+            vh
+                    .setCurrency(currency)
+                    .setOnClickListener(this.listener, currency);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return this.currencies.size() + 1; // + 1 because of the header
+        return this.currencies.size();
     }
 }
